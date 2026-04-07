@@ -1,0 +1,180 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Fix z-index for Popovers inside Dialogs */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Arnie Theme - Based on Figma Design                                        */
+/* -------------------------------------------------------------------------- */
+
+* {
+  font-family:
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Roboto',
+    'Oxygen',
+    'Ubuntu',
+    'Cantarell',
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+}
+
+:root {
+  --font-inter: 'Inter';
+  /* Background and text */
+  --background: 0 0% 96%;
+  --foreground: 215 16% 15%;
+
+  /* Surfaces */
+  --card: 0 0% 100%;
+  --card-foreground: 215 16% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 16% 15%;
+
+  /* Brand - Arnie Navy Blue */
+  --primary: 215 25% 27%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 20% 93%;
+  --secondary-foreground: 215 16% 20%;
+  --muted: 215 15% 95%;
+  --muted-foreground: 215 10% 45%;
+  --accent: 215 20% 92%;
+  --accent-foreground: 215 25% 15%;
+
+  /* Status */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Misc */
+  --border: 215 15% 88%;
+  --input: 215 15% 88%;
+  --ring: 215 25% 27%;
+
+  /* Charts */
+  --chart-1: 215 25% 27%;
+  --chart-2: 200 98% 39%;
+  --chart-3: 142 71% 45%;
+  --chart-4: 45 93% 58%;
+  --chart-5: 340 82% 52%;
+
+  /* Radius */
+  --radius: 8px;
+
+  /* Sidebar - White background with dark active state */
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 215 16% 25%;
+  --sidebar-primary: 215 28% 12%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 215 28% 12%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 215 15% 90%;
+  --sidebar-ring: 215 25% 27%;
+}
+
+.dark {
+  --background: 215 25% 12%;
+  --foreground: 215 15% 90%;
+
+  --card: 215 25% 15%;
+  --card-foreground: 215 15% 90%;
+  --popover: 215 25% 15%;
+  --popover-foreground: 215 15% 90%;
+
+  --primary: 215 25% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 25% 18%;
+  --secondary-foreground: 215 15% 90%;
+  --muted: 215 25% 18%;
+  --muted-foreground: 215 10% 65%;
+  --accent: 215 15% 28%;
+  --accent-foreground: 215 10% 85%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 25% 20%;
+  --input: 215 25% 20%;
+  --ring: 215 25% 35%;
+
+  --chart-1: 215 25% 35%;
+  --chart-2: 200 98% 50%;
+  --chart-3: 142 71% 50%;
+  --chart-4: 45 93% 58%;
+  --chart-5: 340 82% 60%;
+
+  --sidebar: 215 28% 9%;
+  --sidebar-foreground: 215 15% 70%;
+  --sidebar-primary: 215 25% 35%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 215 25% 35%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 215 25% 16%;
+  --sidebar-ring: 215 25% 35%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Hide Next.js dev overlay icon in development */
+#nextjs-portal,
+#nextjs__container,
+[data-nextjs-devtools] {
+  display: none !important;
+}

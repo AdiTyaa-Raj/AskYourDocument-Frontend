@@ -1,0 +1,85 @@
+/* App shell layout styles */
+
+.app-root {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.app-sidebar {
+  border-right: 1px solid hsl(var(--sidebar-border));
+  background-color: hsl(var(--sidebar));
+  flex: 0 0 auto;
+
+  @media (max-width: 768px) {
+    display: contents; /* let the Sidebar's Sheet overlay without reserving space */
+  }
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 100vh;
+  max-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 24px;
+  background: hsl(0 0% 100%);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.app-content {
+  padding: 24px;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.brand-text {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.app-sidebar [data-collapsible='icon'] .brand-text {
+  display: none;
+}
+
+/* Sidebar active state - dark navy background */
+.app-sidebar [data-sidebar='menu-button'][data-active='true'] {
+  background-color: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+  font-weight: 500;
+}
+
+.app-sidebar [data-collapsible='icon'] [data-sidebar='footer'] {
+  display: none;
+}

@@ -1,0 +1,65 @@
+.xlsx-html-wrapper {
+  background: var(--background, #fff);
+}
+
+.xlsx-html-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9rem;
+  color: var(--foreground, #0f172a);
+}
+
+.xlsx-html-wrapper thead tr {
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.95));
+  color: var(--foreground, #0f172a);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.dark .xlsx-html-wrapper thead tr {
+  background: rgba(30, 41, 59, 0.9);
+  color: var(--muted-foreground, #e2e8f0);
+}
+
+.xlsx-html-wrapper th,
+.xlsx-html-wrapper td {
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.dark .xlsx-html-wrapper th,
+.dark .xlsx-html-wrapper td {
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+.xlsx-html-wrapper tbody tr:nth-child(odd) {
+  background: rgba(248, 250, 252, 0.85);
+}
+
+.dark .xlsx-html-wrapper tbody tr:nth-child(odd) {
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.xlsx-html-wrapper tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .xlsx-html-wrapper tbody tr:nth-child(even) {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.xlsx-html-wrapper td {
+  font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}
+
+.xlsx-html-wrapper td span,
+.xlsx-html-wrapper th span {
+  display: block;
+  min-width: 0;
+}

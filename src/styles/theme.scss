@@ -1,0 +1,20 @@
+/* Additional RMS theme helpers live here. Keep main theme tokens in app/globals.css */
+
+/* Example utility classes */
+.glass-card {
+  backdrop-filter: blur(16px);
+  background-color: hsl(var(--card) / 0.8);
+}
+
+.gradient-spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(800px 400px at 50% -10%, hsl(var(--primary) / 0.18), transparent 70%);
+  z-index: -1;
+}
