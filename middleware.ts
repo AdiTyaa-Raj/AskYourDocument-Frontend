@@ -14,7 +14,12 @@ export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone()
   url.pathname = '/login'
   url.searchParams.set('next', pathname)
-  return NextResponse.redirect(url)
+  // Prevent Next.js from caching the unauthenticated redirect response.
+  // Without this, navigating to the protected page immediately after login can reuse a cached redirect.
+  const res = NextResponse.redirect(url)
+  res.headers.set('x-middleware-cache', 'no-cache')
+  res.headers.set('Cache-Control', 'no-store')
+  return res
 }
 
 export const config = {
