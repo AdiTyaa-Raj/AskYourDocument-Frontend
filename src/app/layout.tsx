@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { StoreProvider } from '@/store/StoreProvider'
 import { AuthInitializer } from '@/components/providers/AuthInitializer'
@@ -7,6 +8,13 @@ import { AppQueryClientProvider } from '@/components/providers/QueryClientProvid
 import './globals.css'
 import '@/styles/layout.scss'
 import { Toaster } from 'sonner'
+
+const fontSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Ask Your Document',
@@ -26,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans">
+      <body className={`${fontSans.variable} font-sans`}>
         <StoreProvider>
           <AppQueryClientProvider>
             <ThemeProvider

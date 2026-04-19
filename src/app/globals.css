@@ -9,116 +9,111 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Arnie Theme - Based on Figma Design                                        */
+/* AskYourDocument — Professional Theme                                       */
 /* -------------------------------------------------------------------------- */
 
 * {
   font-family:
-    var(--font-inter),
+    var(--font-sans),
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
-    'Roboto',
-    'Oxygen',
-    'Ubuntu',
-    'Cantarell',
-    'Fira Sans',
-    'Droid Sans',
     'Helvetica Neue',
     sans-serif;
 }
 
 :root {
-  --font-inter: 'Inter';
   /* Background and text */
-  --background: 0 0% 96%;
-  --foreground: 215 16% 15%;
+  --background: 36 20% 97%;
+  --foreground: 222 28% 14%;
 
   /* Surfaces */
   --card: 0 0% 100%;
-  --card-foreground: 215 16% 15%;
+  --card-foreground: 222 28% 14%;
   --popover: 0 0% 100%;
-  --popover-foreground: 215 16% 15%;
+  --popover-foreground: 222 28% 14%;
 
-  /* Brand - Arnie Navy Blue */
-  --primary: 215 25% 27%;
+  /* Brand — Deep slate-indigo */
+  --primary: 222 45% 22%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 215 20% 93%;
-  --secondary-foreground: 215 16% 20%;
-  --muted: 215 15% 95%;
-  --muted-foreground: 215 10% 45%;
-  --accent: 215 20% 92%;
-  --accent-foreground: 215 25% 15%;
+  --secondary: 220 18% 93%;
+  --secondary-foreground: 222 25% 20%;
+  --muted: 220 14% 95%;
+  --muted-foreground: 220 10% 46%;
+
+  /* Accent — Warm amber */
+  --accent: 35 88% 52%;
+  --accent-foreground: 222 28% 10%;
 
   /* Status */
-  --destructive: 0 72% 51%;
+  --destructive: 2 72% 50%;
   --destructive-foreground: 0 0% 100%;
 
   /* Misc */
-  --border: 215 15% 88%;
-  --input: 215 15% 88%;
-  --ring: 215 25% 27%;
+  --border: 220 14% 88%;
+  --input: 220 14% 88%;
+  --ring: 222 45% 22%;
 
   /* Charts */
-  --chart-1: 215 25% 27%;
-  --chart-2: 200 98% 39%;
-  --chart-3: 142 71% 45%;
-  --chart-4: 45 93% 58%;
-  --chart-5: 340 82% 52%;
+  --chart-1: 222 45% 22%;
+  --chart-2: 196 90% 40%;
+  --chart-3: 142 68% 42%;
+  --chart-4: 35 88% 52%;
+  --chart-5: 340 78% 50%;
 
   /* Radius */
-  --radius: 8px;
+  --radius: 6px;
 
-  /* Sidebar - White background with dark active state */
+  /* Sidebar */
   --sidebar: 0 0% 100%;
-  --sidebar-foreground: 215 16% 25%;
-  --sidebar-primary: 215 28% 12%;
+  --sidebar-foreground: 222 20% 28%;
+  --sidebar-primary: 222 45% 22%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 28% 12%;
+  --sidebar-accent: 222 45% 22%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 215 15% 90%;
-  --sidebar-ring: 215 25% 27%;
+  --sidebar-border: 220 14% 90%;
+  --sidebar-ring: 222 45% 22%;
 }
 
 .dark {
-  --background: 215 25% 12%;
-  --foreground: 215 15% 90%;
+  --background: 224 28% 10%;
+  --foreground: 220 18% 90%;
 
-  --card: 215 25% 15%;
-  --card-foreground: 215 15% 90%;
-  --popover: 215 25% 15%;
-  --popover-foreground: 215 15% 90%;
+  --card: 224 26% 13%;
+  --card-foreground: 220 18% 90%;
+  --popover: 224 26% 13%;
+  --popover-foreground: 220 18% 90%;
 
-  --primary: 215 25% 35%;
+  --primary: 222 40% 42%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 215 25% 18%;
-  --secondary-foreground: 215 15% 90%;
-  --muted: 215 25% 18%;
-  --muted-foreground: 215 10% 65%;
-  --accent: 215 15% 28%;
-  --accent-foreground: 215 10% 85%;
+  --secondary: 224 22% 17%;
+  --secondary-foreground: 220 18% 88%;
+  --muted: 224 22% 17%;
+  --muted-foreground: 220 12% 62%;
+  --accent: 35 80% 48%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 2 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 215 25% 20%;
-  --input: 215 25% 20%;
-  --ring: 215 25% 35%;
+  --border: 224 22% 19%;
+  --input: 224 22% 19%;
+  --ring: 222 40% 42%;
 
-  --chart-1: 215 25% 35%;
-  --chart-2: 200 98% 50%;
-  --chart-3: 142 71% 50%;
-  --chart-4: 45 93% 58%;
-  --chart-5: 340 82% 60%;
+  --chart-1: 222 40% 42%;
+  --chart-2: 196 90% 52%;
+  --chart-3: 142 68% 50%;
+  --chart-4: 35 80% 55%;
+  --chart-5: 340 78% 58%;
 
-  --sidebar: 215 28% 9%;
-  --sidebar-foreground: 215 15% 70%;
-  --sidebar-primary: 215 25% 35%;
+  --sidebar: 224 30% 8%;
+  --sidebar-foreground: 220 15% 68%;
+  --sidebar-primary: 222 40% 42%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 25% 35%;
+  --sidebar-accent: 222 40% 42%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 215 25% 16%;
-  --sidebar-ring: 215 25% 35%;
+  --sidebar-border: 224 22% 15%;
+  --sidebar-ring: 222 40% 42%;
 }
 
 @theme inline {

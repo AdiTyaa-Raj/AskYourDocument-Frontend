@@ -103,7 +103,7 @@ export function isLeadInvestorGroup(groups?: string[] | null): boolean {
   return groups.some((group) => {
     if (!group) return false
     const normalized = group.toLowerCase().replace(/[_\s]/g, '-')
-    return normalized === 'lead-investor' || normalized === 'arnie-lead-investor'
+    return normalized === 'lead-investor'
   })
 }
 

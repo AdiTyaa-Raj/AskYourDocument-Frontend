@@ -62,10 +62,10 @@ export function LandingHero() {
           <div className="space-y-5 text-center">
             <div className="border-border/70 inline-flex flex-col items-center gap-1 rounded-full border bg-white/95 px-6 py-3 text-center shadow-sm">
               <span className="text-muted-foreground text-[10px] tracking-[0.4em] uppercase">
-                Arnie
+                Ask Your Document
               </span>
               <span className="text-foreground text-sm font-semibold">
-                Research Management System
+                Document Intelligence Platform
               </span>
             </div>
             <div className="space-y-4">
@@ -73,8 +73,8 @@ export function LandingHero() {
                 Modern research management, rebuilt.
               </h1>
               <p className="text-muted-foreground text-lg">
-                Live pipeline tracking, approvals, and documentation—all tailored to the Arnie
-                investing cadence.
+                Intelligent document Q&A, research workflows, and knowledge management—built for
+                modern teams.
               </p>
             </div>
             <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
@@ -128,7 +128,7 @@ export function LandingHero() {
                   <p className="text-muted-foreground text-xs tracking-wide uppercase">
                     Workflow snapshot
                   </p>
-                  <p className="text-sm font-semibold">How RMS keeps teams in sync</p>
+                  <p className="text-sm font-semibold">How AYD keeps teams in sync</p>
                 </div>
               </div>
               <div className="space-y-3">
