@@ -9,14 +9,12 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux'
 // Import reducers
 import appReducer from './slices/appSlice'
 import { authReducer } from './slices/authSlice'
-import notificationsReducer from './slices/notificationsSlice'
 // import dashboardReducer from './slices/dashboardSlice'
 
 export const store = configureStore({
   reducer: {
     app: appReducer,
     auth: authReducer,
-    notifications: notificationsReducer,
     // dashboard: dashboardReducer,
     // pipeline: pipelineReducer,
   },

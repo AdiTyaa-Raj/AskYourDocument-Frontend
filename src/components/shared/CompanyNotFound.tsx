@@ -1,6 +1,6 @@
 'use client'
 
-import { Building2, Home, RefreshCw, Search } from 'lucide-react'
+import { Building2, Home, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import { AppFeedbackState } from './AppFeedbackState'
@@ -16,16 +16,12 @@ export function CompanyNotFound({
   companyId,
   onRetry,
   customMessage,
-  showSearchButton = true,
+  showSearchButton: _showSearchButton = false,
 }: CompanyNotFoundProps) {
   const router = useRouter()
 
   const handleNavigateHome = () => {
-    router.push('/dashboard')
-  }
-
-  const handleSearchCompanies = () => {
-    router.push('/pipeline') // Navigate to pipeline/search page
+    router.push('/documents')
   }
 
   const title = companyId ? `Company "${companyId}" Not Found` : 'Company Not Found'
@@ -46,25 +42,19 @@ export function CompanyNotFound({
               icon: <RefreshCw className="h-4 w-4" />,
             }
           : {
-              label: 'Go to Dashboard',
+              label: 'Go to Documents',
               onClick: handleNavigateHome,
               icon: <Home className="h-4 w-4" />,
             }
       }
       secondaryAction={
-        showSearchButton
+        onRetry
           ? {
-              label: 'Search Companies',
-              onClick: handleSearchCompanies,
-              icon: <Search className="h-4 w-4" />,
+              label: 'Go to Documents',
+              onClick: handleNavigateHome,
+              icon: <Home className="h-4 w-4" />,
             }
-          : onRetry
-            ? {
-                label: 'Go to Dashboard',
-                onClick: handleNavigateHome,
-                icon: <Home className="h-4 w-4" />,
-              }
-            : undefined
+          : undefined
       }
     >
       {companyId && (

@@ -1,9 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import React from 'react'
-import { CheckCircle, Clock, AlertCircle, FileEdit } from 'lucide-react'
-
-import type { MemoStatus } from '@/containers/memos/lib/types'
+import type { ReactNode } from 'react'
 import type { SortConfig } from '@/components/shared/DataTable'
 
 export function cn(...inputs: ClassValue[]) {
@@ -113,43 +110,10 @@ export function isLeadInvestorGroup(groups?: string[] | null): boolean {
 /**
  * Get status icon for memo status
  */
-export const getStatusIcon = (status: MemoStatus) => {
-  switch (status) {
-    case 'APPROVED':
-      return <CheckCircle className="size-5 text-green-500" strokeWidth={2} />
-    case 'SUBMITTED':
-      return <Clock className="size-5 text-yellow-500" strokeWidth={2} />
-    case 'REJECTED':
-      return <AlertCircle className="size-5 text-red-500" strokeWidth={2} />
-    case 'DRAFT':
-      return <FileEdit className="size-5 text-gray-400" strokeWidth={2} />
-    default:
-      return null
-  }
-}
-
-/**
- * Get status text for memo status
- */
-export const getStatusText = (status: MemoStatus) => {
-  switch (status) {
-    case 'APPROVED':
-      return 'Approved'
-    case 'SUBMITTED':
-      return 'Submitted'
-    case 'REJECTED':
-      return 'Rejected'
-    case 'DRAFT':
-      return 'Draft'
-    default:
-      return status
-  }
-}
-
 /**
  * Format value - displays backend data as-is
  */
-export function formatValue(_key: string, value: unknown): React.ReactNode {
+export function formatValue(_key: string, value: unknown): ReactNode {
   if (value === null || value === undefined) {
     return '—'
   }

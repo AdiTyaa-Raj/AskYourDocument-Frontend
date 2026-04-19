@@ -48,42 +48,9 @@ export function createLazyContainer<P = Record<string, never>>(
  * Import these directly in your page.tsx files
  */
 
-export const LazyPipeline = createLazyContainer(
-  () => import('@/containers/pipeline/PipelineContainer').then((m) => m.PipelineContainer),
-  'Loading pipeline...'
-)
-
 export const LazyDocuments = createLazyContainer(
   () => import('@/containers/documents/DocumentsContainer').then((m) => m.DocumentsContainer),
   'Loading documents...'
-)
-
-export const LazyDocumentDetail = createLazyContainer(
-  () =>
-    import('@/containers/documents/DocumentDetailContainer').then((m) => m.DocumentDetailContainer),
-  'Loading document...'
-)
-
-export const LazyTearsheet = createLazyContainer(
-  () => import('@/containers/tearsheet/TearsheetContainer').then((m) => m.TearsheetContainer),
-  'Loading tearsheet...'
-)
-
-export const LazyMemos = createLazyContainer(
-  () =>
-    import('@/containers/memos/NewMemoSubmissionContainer').then(
-      (m) => m.NewMemoSubmissionContainer
-    ),
-  'Loading memo editor...'
-)
-
-// Re-use the same lazy container for template and view pages (same component)
-export const LazyMemoTemplate = LazyMemos
-export const LazyMemoView = LazyMemos
-
-export const LazyCoverage = createLazyContainer(
-  () => import('@/containers/coverage/CoverageContainer').then((m) => m.CoverageContainer),
-  'Loading coverage...'
 )
 
 export const LazyAIChat = createLazyContainer(
@@ -91,41 +58,23 @@ export const LazyAIChat = createLazyContainer(
   'Loading AI chat...'
 )
 
-export const LazyNotifications = createLazyContainer(
-  () =>
-    import('@/containers/notifications/NotificationsContainer').then(
-      (m) => m.NotificationsContainer
-    ),
-  'Loading notifications...'
-)
-
-export const LazyApprovals = createLazyContainer(
-  () => import('@/containers/approvals/ApprovalsContainer'),
-  'Loading approvals...'
-)
-
-export const LazyReminders = createLazyContainer(
-  () => import('@/containers/reminders/RemindersContainer').then((m) => m.RemindersContainer),
-  'Loading reminders...'
-)
-
 /**
  * HOW TO USE:
  *
  * Before (manual dynamic import in each page):
  * ```tsx
- * const PipelineContainer = dynamic(() => import('...'), { loading: ... })
+ * const SomeContainer = dynamic(() => import('...'), { loading: ... })
  * export default function Page() {
- *   return <PipelineContainer />
+ *   return <SomeContainer />
  * }
  * ```
  *
  * After (just import from this file):
  * ```tsx
- * import { LazyPipeline } from '@/lib/lazy-container'
+ * import { LazyDocuments } from '@/lib/lazy-container'
  *
  * export default function Page() {
- *   return <LazyPipeline />
+ *   return <LazyDocuments />
  * }
  * ```
  *

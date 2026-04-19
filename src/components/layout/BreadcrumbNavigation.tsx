@@ -40,17 +40,11 @@ export function BreadcrumbNavigation({ title }: BreadcrumbNavigationProps) {
   const handleNavigation = (segment: string) => {
     // Map breadcrumb segments to their routes
     const routeMap: Record<string, string> = {
-      Dashboard: '/dashboard',
-      Pipeline: '/pipeline',
-      Coverage: '/coverage',
       Documents: '/documents',
-      'Memo Submission': '/memos',
-      Tearsheet: '/tearsheet',
-      Approvals: '/approvals',
       'AI Chat': '/ai-chat',
-      'Research Updates': '/research-updates',
-      'Research Update': '/research-updates',
-      Settings: '/settings',
+      Users: '/users',
+      Roles: '/roles',
+      Tenants: '/tenants',
     }
 
     const route = routeMap[segment]

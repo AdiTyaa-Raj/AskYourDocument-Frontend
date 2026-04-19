@@ -1,19 +1,25 @@
 /**
  * Chat Queries
  * TanStack Query hooks for chat-related data fetching
+ *
+ * NOTE: The backend (POST /chat) has no session management.
+ * Chat history is maintained entirely in local React state inside the container.
+ * These hooks only wrap the single chat endpoint.
  */
 
 import { useCallback, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { chatService } from '@/services/api/chat.service'
 import type {
   ChatMessageRequest,
+  ChatMessageResponse,
   Message,
-  StreamChunkData,
+  ChatSession,
   StreamingChatState,
 } from '@/containers/ai-chat/lib/types'
 
-// Query keys for better cache management
+// Query keys – kept for cache-invalidation compatibility even though sessions
+// are managed locally.
 export const chatSessionKeys = {
   all: ['chat-sessions'] as const,
   lists: () => [...chatSessionKeys.all, 'list'] as const,
@@ -24,182 +30,95 @@ export const chatSessionKeys = {
 }
 
 /**
- * Hook to fetch chat sessions with pagination and filters
- */
-export function useChatSessions(
-  skip: number = 0,
-  limit: number = 20,
-  isActive?: boolean,
-  searchTitle?: string
-) {
-  return useQuery({
-    queryKey: chatSessionKeys.list(skip, limit, isActive, searchTitle),
-    queryFn: async () => {
-      const response = await chatService.getSessions(skip, limit, isActive, searchTitle)
-      return response.data || []
-    },
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
-  })
-}
-
-/**
- * Hook to fetch session details with messages
- */
-export function useSessionDetails(
-  sessionId: string | null,
-  includeMessages: boolean = true,
-  messagesLimit: number = 50
-) {
-  return useQuery({
-    queryKey: chatSessionKeys.detail(sessionId || ''),
-    queryFn: async () => {
-      if (!sessionId) return null
-      const response = await chatService.getSessionDetails(
-        sessionId,
-        includeMessages,
-        messagesLimit
-      )
-
-      // Transform messages to UI format
-      const messages: Message[] = response.data.messages.map((msg, index) => {
-        // Check if role field exists and is valid
-        let sender: 'user' | 'assistant' = 'assistant'
-
-        if (msg.role === 'user') {
-          sender = 'user'
-        } else if (msg.role === 'assistant') {
-          sender = 'assistant'
-        } else {
-          // FALLBACK: If role is undefined or invalid, alternate messages
-          // Typically first message is from user, so:
-          // Index 0 = user, Index 1 = assistant, Index 2 = user, etc.
-          sender = index % 2 === 0 ? 'user' : 'assistant'
-        }
-
-        return {
-          id: msg.id,
-          content: msg.content,
-          sender,
-          timestamp: msg.created_at,
-        }
-      })
-
-      return {
-        session: response.data,
-        messages,
-      }
-    },
-    enabled: !!sessionId,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    retry: (failureCount, error) => {
-      // Don't retry on 404 errors (session not found)
-      const is404 = (error as { response?: { status?: number } })?.response?.status === 404
-      if (is404) return false
-      // Default: retry up to 3 times for other errors
-      return failureCount < 3
-    },
-  })
-}
-
-/**
- * Hook to delete a chat session
- */
-export function useDeleteChatSession() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (sessionId: string) => {
-      return await chatService.deleteSession(sessionId)
-    },
-    onSuccess: (_, sessionId) => {
-      // Invalidate all chat sessions lists
-      queryClient.invalidateQueries({ queryKey: chatSessionKeys.lists() })
-
-      // Remove the specific session from cache
-      queryClient.removeQueries({ queryKey: chatSessionKeys.detail(sessionId) })
-    },
-  })
-}
-
-/**
- * Hook to update a chat session
- */
-export function useUpdateChatSession() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ sessionId, title }: { sessionId: string; title: string }) => {
-      return await chatService.updateSession(sessionId, title)
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate all chat sessions lists
-      queryClient.invalidateQueries({ queryKey: chatSessionKeys.lists() })
-
-      // Invalidate the specific session details
-      queryClient.invalidateQueries({ queryKey: chatSessionKeys.detail(variables.sessionId) })
-    },
-  })
-}
-
-/**
- * Hook to send a chat message
+ * Hook to send a non-streaming chat message via POST /chat.
  */
 export function useSendChatMessage() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (request: ChatMessageRequest) => {
+    mutationFn: async (request: ChatMessageRequest): Promise<ChatMessageResponse> => {
       return await chatService.sendChatMessage(request)
     },
-    onSuccess: (data, variables) => {
-      if (variables.session_id) {
-        // Update existing session details
-        queryClient.invalidateQueries({ queryKey: chatSessionKeys.detail(variables.session_id) })
-      } else if (data.session_id) {
-        // New session created - invalidate sessions list to show it in "All Chats"
-        queryClient.invalidateQueries({ queryKey: chatSessionKeys.lists() })
-        // Also invalidate the new session details
-        queryClient.invalidateQueries({ queryKey: chatSessionKeys.detail(data.session_id) })
-      }
-    },
-  })
-}
-
-/**
- * Hook to create a new chat session
- */
-export function useCreateSession() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (title?: string) => {
-      return await chatService.createSession(title)
-    },
     onSuccess: () => {
-      // Invalidate sessions list to show new session
+      // No session invalidation needed – sessions are client-side only
       queryClient.invalidateQueries({ queryKey: chatSessionKeys.lists() })
     },
   })
 }
 
-/**
- * Hook to prefetch chat sessions
- * Useful for optimistic loading
- */
-export function usePrefetchChatSessions() {
-  const queryClient = useQueryClient()
+// ──────────────────────────────────────────────────────────────────────────────
+// Stub hooks – kept so that container imports don't break.
+// These hooks return empty/no-op data because the backend has no session API.
+// ──────────────────────────────────────────────────────────────────────────────
 
-  return (skip: number = 0, limit: number = 20, isActive?: boolean, searchTitle?: string) => {
-    queryClient.prefetchQuery({
-      queryKey: chatSessionKeys.list(skip, limit, isActive, searchTitle),
-      queryFn: async () => {
-        const response = await chatService.getSessions(skip, limit, isActive, searchTitle)
-        return response.data || []
-      },
-    })
+/**
+ * Stub: The backend has no session list endpoint.
+ * Returns an empty array so the UI renders gracefully.
+ */
+export function useChatSessions(
+  _skip?: number,
+  _limit?: number,
+  _isActive?: boolean,
+  _searchTitle?: string
+) {
+  return {
+    data: [] as ChatSession[],
+    isLoading: false,
+    error: null,
   }
 }
+
+/**
+ * Stub: The backend has no session-detail endpoint.
+ * Returns null so the container falls through to its local-state path.
+ */
+export function useSessionDetails(
+  _sessionId: string | null,
+  _includeMessages?: boolean,
+  _messagesLimit?: number
+) {
+  return {
+    data: null as { session: ChatSession; messages: Message[] } | null,
+    isLoading: false,
+    error: null,
+  }
+}
+
+/** Stub – no-op delete */
+export function useDeleteChatSession() {
+  return useMutation({
+    mutationFn: async (_sessionId: string) => ({ message: 'Not supported' }),
+  })
+}
+
+/** Stub – no-op update */
+export function useUpdateChatSession() {
+  return useMutation({
+    mutationFn: async (_vars: { sessionId: string; title: string }) => ({
+      message: 'Not supported',
+    }),
+  })
+}
+
+/** Stub – no-op create */
+export function useCreateSession() {
+  return useMutation({
+    mutationFn: async (_title?: string) => ({ id: '', title: _title || 'New Chat' }),
+  })
+}
+
+/** Stub – no-op prefetch */
+export function usePrefetchChatSessions() {
+  return () => {}
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// useStreamingChat
+//
+// The backend does not stream. This hook wraps the regular sendChatMessage call
+// but exposes the same streaming-state interface so AIChatContainer can work
+// without changes to its streaming-state logic.
+// ──────────────────────────────────────────────────────────────────────────────
 
 const INITIAL_STREAMING_STATE: StreamingChatState = {
   isStreaming: false,
@@ -211,13 +130,12 @@ const INITIAL_STREAMING_STATE: StreamingChatState = {
 }
 
 /**
- * Hook to send a chat message with streaming response
- * Returns accumulated content as it streams in word by word
+ * Simulates a "streaming" chat by calling POST /chat and populating the state
+ * once the response arrives, mimicking the streaming interface so that
+ * AIChatContainer's existing callbacks work unchanged.
  */
 export function useStreamingChat() {
-  const queryClient = useQueryClient()
   const abortControllerRef = useRef<AbortController | null>(null)
-
   const [streamingState, setStreamingState] = useState<StreamingChatState>(INITIAL_STREAMING_STATE)
 
   const resetStreamingState = useCallback(() => {
@@ -231,98 +149,52 @@ export function useStreamingChat() {
         messageId: string | null
         sessionId: string | null
         content: string
+        sources?: ChatMessageResponse['sources']
+        chunks_retrieved?: number
       }) => void
     ) => {
-      let accumulatedContent = ''
-      let finalSessionId: string | null = request.session_id || null
-      let finalMessageId: string | null = null
-
-      // Cancel any existing stream
+      // Cancel any in-flight request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
-
-      // Create new abort controller
       abortControllerRef.current = new AbortController()
 
-      // Reset state and start streaming
       setStreamingState({
         ...INITIAL_STREAMING_STATE,
         isStreaming: true,
-        sessionId: request.session_id || null,
+        sessionId: null,
       })
 
       try {
-        await chatService.streamMessage(
-          request,
-          {
-            onChunk: (chunk: string, data: StreamChunkData) => {
-              accumulatedContent += chunk
-              setStreamingState((prev) => ({
-                ...prev,
-                streamedContent: accumulatedContent,
-                sessionId: data.session_id || prev.sessionId,
-              }))
+        const response = await chatService.sendChatMessage(request)
 
-              if (data.session_id) {
-                finalSessionId = data.session_id
-              }
-            },
-            onSearchMetadata: (metadata) => {
-              setStreamingState((prev) => ({
-                ...prev,
-                searchMetadata: metadata || null,
-              }))
-            },
-            onComplete: (data) => {
-              finalMessageId = data.message_id
-              finalSessionId = data.session_id || finalSessionId
-
-              setStreamingState((prev) => ({
-                ...prev,
-                isStreaming: false,
-                messageId: data.message_id,
-                sessionId: data.session_id || prev.sessionId,
-                searchMetadata: data.metadata || prev.searchMetadata,
-              }))
-
-              // Invalidate queries to refresh chat lists
-              if (request.session_id) {
-                queryClient.invalidateQueries({
-                  queryKey: chatSessionKeys.detail(request.session_id),
-                })
-              } else if (finalSessionId) {
-                // New session created
-                queryClient.invalidateQueries({ queryKey: chatSessionKeys.lists() })
-                queryClient.invalidateQueries({ queryKey: chatSessionKeys.detail(finalSessionId) })
-              }
-
-              // Call completion callback
-              onComplete?.({
-                messageId: finalMessageId,
-                sessionId: finalSessionId,
-                content: accumulatedContent,
-              })
-            },
-            onError: (error) => {
-              setStreamingState((prev) => ({
-                ...prev,
-                isStreaming: false,
-                error,
-              }))
-            },
-          },
-          abortControllerRef.current.signal
-        )
-      } catch (error) {
         setStreamingState((prev) => ({
           ...prev,
           isStreaming: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          streamedContent: response.answer,
+        }))
+
+        onComplete?.({
+          messageId: null,
+          sessionId: null,
+          content: response.answer,
+          sources: response.sources,
+          chunks_retrieved: response.chunks_retrieved,
+        })
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          setStreamingState((prev) => ({ ...prev, isStreaming: false }))
+          return
+        }
+        const msg = error instanceof Error ? error.message : 'Unknown error occurred'
+        setStreamingState((prev) => ({
+          ...prev,
+          isStreaming: false,
+          error: msg,
         }))
       }
     },
-    [queryClient]
+    []
   )
 
   const cancelStream = useCallback(() => {
@@ -330,10 +202,7 @@ export function useStreamingChat() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
-    setStreamingState((prev) => ({
-      ...prev,
-      isStreaming: false,
-    }))
+    setStreamingState((prev) => ({ ...prev, isStreaming: false }))
   }, [])
 
   return {

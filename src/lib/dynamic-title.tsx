@@ -11,33 +11,12 @@ interface DynamicAppShellProps {
 
 // Route title mapping configuration
 const ROUTE_TITLES: Record<string, string | ((pathname: string) => string)> = {
-  '/': 'Dashboard',
-  '/dashboard': 'Dashboard',
-  '/pipeline': 'Pipeline > Investment Pipeline',
-  '/coverage': 'Coverage > Holdings, Watch List & Universe',
-  '/documents': (pathname) =>
-    pathname === '/documents' ? 'Documents' : 'Documents > Document Details',
-  '/memos': 'Memo Submission > Create New Note',
-  '/tearsheet': (pathname) => (pathname === '/tearsheet' ? 'Tearsheet' : 'Tearsheet'),
-  '/approvals': 'Approvals',
-  '/reminders': 'Reminders',
-  '/notifications': 'Notifications',
+  '/': 'AskYourDocument',
+  '/documents': 'Documents',
   '/ai-chat': 'AI Chat',
-  '/all-chats': 'All Chats',
-  '/research-updates': (pathname) => {
-    // Main page: show breadcrumb "Research Update > Create New Note"
-    if (pathname === '/research-updates') {
-      return 'Research Update > Create New Note'
-    }
-    // Template pages: show breadcrumb "Research Update > Create New Note"
-    if (pathname.startsWith('/research-updates/template/')) {
-      return 'Research Update > Create New Note'
-    }
-    // Other sub-routes (like /research-updates/[memoId]): just show "Research Updates"
-    return 'Research Updates'
-  },
-  '/portfolio': 'Portfolio',
-  '/settings': 'Settings',
+  '/users': 'Users',
+  '/roles': 'Roles',
+  '/tenants': 'Tenants',
   '/login': 'Authentication',
   '/signup': 'Authentication',
 }
@@ -63,7 +42,7 @@ export function useDynamicTitle(): string {
     }
 
     // Default fallback
-    return 'Dashboard'
+    return 'Documents'
   }, [pathname])
 }
 

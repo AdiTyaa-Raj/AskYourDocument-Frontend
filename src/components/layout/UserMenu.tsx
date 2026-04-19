@@ -1,13 +1,11 @@
 'use client'
 
 import { memo, useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
@@ -38,20 +36,12 @@ interface UserMenuProps {
 }
 
 export const UserMenu = memo(function UserMenu({ user }: UserMenuProps) {
-  const router = useRouter()
   const dispatch = useAppDispatch()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  const handleNavigate = useCallback(
-    (path: string) => {
-      router.push(path)
-    },
-    [router]
-  )
 
   const handleLogout = useCallback(() => {
     clearAuthStorage()
@@ -90,12 +80,6 @@ export const UserMenu = memo(function UserMenu({ user }: UserMenuProps) {
           <span className="text-foreground text-sm font-semibold">{displayName}</span>
           <span className="text-muted-foreground text-xs">{displayEmail}</span>
         </DropdownMenuLabel>
-        <div className="px-1 py-1">
-          <DropdownMenuItem className="text-sm" onSelect={() => handleNavigate('/settings')}>
-            Settings
-          </DropdownMenuItem>
-        </div>
-        <DropdownMenuSeparator className="my-0" />
         <div className="px-1 pt-0 pb-1">
           <DropdownMenuItem
             variant="destructive"

@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Sparkles, AlertCircle, Plus } from 'lucide-react'
-import type { Message, ChatSession } from '@/containers/ai-chat/lib/types'
+import { useRouter } from 'next/navigation'
+import { Sparkles, Plus, FileText } from 'lucide-react'
+import type { Message, SourceInfo, ChatSession } from '@/containers/ai-chat/lib/types'
 import { getCurrentTimestamp } from '@/lib/date-utils'
 import {
-  useSessionDetails,
   useStreamingChat,
-  useChatSessions,
   useDeleteChatSession,
   useUpdateChatSession,
 } from '@/containers/ai-chat/lib'
@@ -19,7 +17,6 @@ import {
   SuggestedPrompts,
   TypingIndicator,
   ChatListItem,
-  ChatSkeleton,
   ChatListSkeleton,
 } from '@/containers/ai-chat/components'
 import { SUGGESTED_PROMPTS } from '@/containers/ai-chat/data/default-messages'
@@ -27,30 +24,92 @@ import { useAutoResizeTextarea } from '@/containers/ai-chat/lib/useAutoResizeTex
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 
+// ─── Local session storage helpers ────────────────────────────────────────────
+
+const LOCAL_SESSIONS_KEY = 'ayd_chat_sessions'
+
+function loadSessions(): ChatSession[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(LOCAL_SESSIONS_KEY)
+    return raw ? (JSON.parse(raw) as ChatSession[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveSessions(sessions: ChatSession[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions))
+}
+
+function createNewSession(firstMessage?: string): ChatSession {
+  const now = new Date().toISOString()
+  return {
+    id: `session-${Date.now()}`,
+    title: firstMessage ? firstMessage.slice(0, 50) : 'New Chat',
+    description: null,
+    last_activity: now,
+    created_at: now,
+    updated_at: now,
+    messages: [],
+    is_active: true,
+    message_count: 0,
+    metadata: {},
+  }
+}
+
+// ─── Sources Panel ────────────────────────────────────────────────────────────
+
+function SourcesPanel({ sources }: { sources: SourceInfo[] }) {
+  if (!sources || sources.length === 0) return null
+
+  return (
+    <div className="border-border bg-muted/30 mt-2 rounded-lg border p-3">
+      <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
+        <FileText className="size-3" />
+        Sources ({sources.length})
+      </p>
+      <div className="space-y-1">
+        {sources.map((src, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground w-4 shrink-0 text-right">{i + 1}.</span>
+            <span className="text-foreground flex-1 truncate">
+              {src.filename || `Document #${src.document_id}`}
+            </span>
+            <span className="text-muted-foreground shrink-0">
+              {(src.similarity * 100).toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Container ───────────────────────────────────────────────────────────
+
 export function AIChatContainer() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const sessionId = searchParams.get('session')
 
+  // Local session management (backend has no session API)
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId)
   const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null)
 
-  // Ref to track the streaming message ID for updating
   const streamingMessageIdRef = useRef<string | null>(null)
-  // Ref for auto-scrolling to latest message
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const landingTextareaRef = useAutoResizeTextarea(inputValue, 200)
 
-  const {
-    data: sessionData,
-    isLoading: loadingSession,
-    error: sessionError,
-  } = useSessionDetails(currentSessionId)
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    setSessions(loadSessions())
+  }, [])
 
-  // Streaming chat hook
+  // Streaming chat hook (wraps POST /chat under the hood)
   const {
     isStreaming,
     streamedContent,
@@ -58,32 +117,26 @@ export function AIChatContainer() {
     error: streamingError,
   } = useStreamingChat()
 
+  // Stubs – no-op for session list sidebar
   const deleteMutation = useDeleteChatSession()
   const updateMutation = useUpdateChatSession()
-  const { data: allSessions = [], isLoading: loadingAllSessions } = useChatSessions(
-    0,
-    100,
-    undefined,
-    ''
-  )
+  const allSessions = sessions
+  const loadingAllSessions = false
 
+  // Sync messages from the active session
   useEffect(() => {
-    if (sessionData?.messages && sessionData.messages.length > 0) {
-      setMessages(sessionData.messages)
-    }
-  }, [sessionData])
-
-  useEffect(() => {
-    setCurrentSessionId(sessionId)
-
-    if (!sessionId) {
+    if (!currentSessionId) {
       setMessages([])
+      return
     }
-  }, [sessionId])
+    const session = sessions.find((s) => s.id === currentSessionId)
+    if (session) {
+      setMessages(session.messages)
+    }
+  }, [currentSessionId, sessions])
 
   // Update streaming message content as it arrives
   useEffect(() => {
-    // Update content while streaming or when we have final content
     if (streamingMessageIdRef.current && streamedContent) {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -93,70 +146,85 @@ export function AIChatContainer() {
     }
   }, [streamedContent])
 
-  // Auto-scroll to latest message when messages or streaming state changes
+  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, streamedContent, isStreaming])
 
-  // Handle streaming errors
+  // Surface streaming errors
   useEffect(() => {
-    if (streamingError) {
-      setError(streamingError)
-    }
+    if (streamingError) setError(streamingError)
   }, [streamingError])
 
-  // Check if it's a 404 error (session doesn't exist)
-  const is404Error =
-    sessionError &&
-    ((sessionError as { response?: { status?: number } })?.response?.status === 404 ||
-      (sessionError as { status?: number })?.status === 404 ||
-      (sessionError instanceof Error && sessionError.message.includes('404')))
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-  // Handle session not found (404) - redirect to new chat
-  useEffect(() => {
-    if (is404Error && currentSessionId) {
-      setCurrentSessionId(null)
-      setMessages([])
-      router.replace('/ai-chat')
-    }
-  }, [is404Error, currentSessionId, router])
-
-  // Helper to check if a message is the currently streaming empty assistant message
-  const isStreamingEmptyAssistantMessage = useCallback(
-    (message: Message): boolean => {
-      return (
-        isStreaming &&
-        message.sender === 'assistant' &&
-        message.id === streamingMessageIdRef.current &&
-        !message.content
+  const persistSessionMessages = useCallback((sessionId: string, newMessages: Message[]) => {
+    setSessions((prev) => {
+      const updated = prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              messages: newMessages,
+              message_count: newMessages.length,
+              last_activity: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          : s
       )
-    },
+      saveSessions(updated)
+      return updated
+    })
+  }, [])
+
+  const isStreamingEmptyAssistantMessage = useCallback(
+    (message: Message): boolean =>
+      isStreaming &&
+      message.sender === 'assistant' &&
+      message.id === streamingMessageIdRef.current &&
+      !message.content,
     [isStreaming]
   )
 
-  // Check if we should show the typing indicator (when there's a streaming empty message)
   const shouldShowTypingIndicator = messages.some(isStreamingEmptyAssistantMessage)
+
+  // ── Navigation ─────────────────────────────────────────────────────────
 
   const handleNewChat = useCallback(() => {
     setMessages([])
     setCurrentSessionId(null)
+    setError(null)
     router.push('/ai-chat')
   }, [router])
 
   const handleSessionSelect = useCallback(
     (selectedSessionId: string) => {
       setCurrentSessionId(selectedSessionId)
-      router.push(`/ai-chat?session=${selectedSessionId}`)
+      const session = sessions.find((s) => s.id === selectedSessionId)
+      if (session) setMessages(session.messages)
     },
-    [router]
+    [sessions]
   )
+
+  // ── Send message ────────────────────────────────────────────────────────
 
   const handleSendMessage = useCallback(
     async (messageText?: string) => {
       const textToSend = messageText || inputValue
       if (textToSend.trim() === '' || isStreaming) return
 
-      // Add user message optimistically
+      // Ensure a session exists
+      let sessionId = currentSessionId
+      if (!sessionId) {
+        const newSession = createNewSession(textToSend)
+        setSessions((prev) => {
+          const updated = [newSession, ...prev]
+          saveSessions(updated)
+          return updated
+        })
+        sessionId = newSession.id
+        setCurrentSessionId(sessionId)
+      }
+
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         content: textToSend,
@@ -164,58 +232,53 @@ export function AIChatContainer() {
         timestamp: getCurrentTimestamp(),
       }
 
-      // Create placeholder for streaming AI response
       const streamingMessageId = `assistant-${Date.now()}`
       streamingMessageIdRef.current = streamingMessageId
 
-      const aiMessage: Message = {
+      const aiPlaceholder: Message = {
         id: streamingMessageId,
-        content: '', // Will be filled by streaming
+        content: '',
         sender: 'assistant',
         timestamp: getCurrentTimestamp(),
       }
 
-      setMessages((prev) => [...prev, userMessage, aiMessage])
+      const nextMessages = [...messages, userMessage, aiPlaceholder]
+      setMessages(nextMessages)
       setInputValue('')
       setError(null)
 
-      // Send streaming message
-      // Don't use currentSessionId if the session doesn't exist (404 error)
-      const validSessionId = is404Error ? undefined : currentSessionId
-      sendStreamingMessage(
-        {
-          query: textToSend,
-          session_id: validSessionId || undefined,
-        },
-        (data) => {
-          // On complete callback
-          if (data.sessionId && (!currentSessionId || is404Error)) {
-            // Set session ID and update URL to prevent stale session issues
-            setCurrentSessionId(data.sessionId)
-            // Update URL to include the new session ID (use replace to not add to history)
-            router.replace(`/ai-chat?session=${data.sessionId}`)
-          }
+      const sid = sessionId
 
-          // Always update the message with final content when streaming completes
-          // Use the server's message_id if available, otherwise keep the placeholder id
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === streamingMessageId
-                ? {
-                    ...msg,
-                    id: data.messageId || streamingMessageId,
-                    content: data.content || msg.content,
-                  }
-                : msg
-            )
+      sendStreamingMessage({ query: textToSend, top_k: 5 }, (data) => {
+        // Replace placeholder with final content and sources
+        setMessages((prev) => {
+          const finalMessages = prev.map((msg) =>
+            msg.id === streamingMessageId
+              ? {
+                  ...msg,
+                  id: data.messageId || streamingMessageId,
+                  content: data.content || msg.content,
+                  sources: (data as { sources?: SourceInfo[] }).sources,
+                  chunks_retrieved: (data as { chunks_retrieved?: number }).chunks_retrieved,
+                }
+              : msg
           )
+          // Persist to localStorage
+          persistSessionMessages(sid, finalMessages)
+          return finalMessages
+        })
 
-          // Clear the streaming ref
-          streamingMessageIdRef.current = null
-        }
-      )
+        streamingMessageIdRef.current = null
+      })
     },
-    [inputValue, isStreaming, currentSessionId, is404Error, sendStreamingMessage, router]
+    [
+      inputValue,
+      isStreaming,
+      currentSessionId,
+      messages,
+      sendStreamingMessage,
+      persistSessionMessages,
+    ]
   )
 
   const handleLandingTextareaKeyDown = useCallback(
@@ -235,16 +298,24 @@ export function AIChatContainer() {
     [handleSendMessage]
   )
 
+  // ── Session management ─────────────────────────────────────────────────
+
   const handleDeleteChat = useCallback((sessionId: string) => {
     setDeleteSessionId(sessionId)
   }, [])
 
   const handleRenameChat = useCallback(
     async (sessionId: string, newTitle: string) => {
+      setSessions((prev) => {
+        const updated = prev.map((s) => (s.id === sessionId ? { ...s, title: newTitle } : s))
+        saveSessions(updated)
+        return updated
+      })
+      // Also call the stub mutation (no-op) for consistency
       try {
         await updateMutation.mutateAsync({ sessionId, title: newTitle })
-      } catch (err) {
-        console.error('Failed to rename chat:', err)
+      } catch {
+        // Expected – no-op stub
       }
     },
     [updateMutation]
@@ -253,100 +324,40 @@ export function AIChatContainer() {
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteSessionId) return
 
+    setSessions((prev) => {
+      const updated = prev.filter((s) => s.id !== deleteSessionId)
+      saveSessions(updated)
+      return updated
+    })
+
+    if (deleteSessionId === currentSessionId) {
+      handleNewChat()
+    }
+
     try {
       await deleteMutation.mutateAsync(deleteSessionId)
-
-      // If we deleted the current session, navigate to new chat
-      if (deleteSessionId === currentSessionId) {
-        handleNewChat()
-      }
-
-      setDeleteSessionId(null)
-    } catch (err) {
-      console.error('Failed to delete chat:', err)
-      setDeleteSessionId(null)
+    } catch {
+      // Expected – no-op stub
     }
+    setDeleteSessionId(null)
   }, [deleteSessionId, deleteMutation, currentSessionId, handleNewChat])
 
-  // Show loading state while loading session
-  if (loadingSession && currentSessionId) {
-    return (
-      <div className="bg-background flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
-        <div className="mx-auto flex w-full max-w-7xl flex-1 gap-4 overflow-hidden p-6">
-          {/* Main Chat Area */}
-          <div className="flex flex-1 flex-col">
-            <div className="border-border bg-card flex h-full flex-col rounded-2xl border shadow-sm">
-              {/* Header */}
-              <div className="border-border flex items-center justify-between border-b px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#4F46E5]">
-                    <Sparkles className="size-5 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Loading chat session...
-                    </h1>
-                  </div>
-                </div>
-              </div>
+  // ── Render: landing page (no session, no messages) ──────────────────────
 
-              {/* Loading Messages Area */}
-              <div className="flex-1 overflow-y-auto p-6">
-                <ChatSkeleton />
-              </div>
-
-              {/* Input Area (disabled) */}
-              <ChatInput
-                value=""
-                onChange={() => {}}
-                onSubmit={() => {}}
-                disabled={true}
-                loading={true}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Show error state if session failed to load (non-404 errors)
-  // Note: 404 errors are handled by useEffect above which redirects to new chat
-  if (sessionError && currentSessionId) {
-    // Don't show error for 404 - we're redirecting via useEffect
-    if (is404Error) {
-      return null
-    }
-
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="mx-auto mb-4 size-12 text-red-500" />
-          <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Failed to load chat session
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {sessionError instanceof Error ? sessionError.message : 'Please try again'}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Show centered landing page when no session is active and no messages
   if (!currentSessionId && messages.length === 0) {
     return (
       <>
         <div className="bg-background flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
           <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6">
-            {/* Arnie Branding */}
             <div className="mb-12 text-center">
               <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                Arnie
+                AskYourDoc
               </h1>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Ask questions about your uploaded documents
+              </p>
             </div>
 
-            {/* Main Input Box */}
             <div className="w-full max-w-3xl">
               <div className="border-border bg-card relative rounded-2xl border shadow-lg">
                 <textarea
@@ -354,7 +365,7 @@ export function AIChatContainer() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleLandingTextareaKeyDown}
-                  placeholder="Ask anything related to text in the available documents and notes."
+                  placeholder="Ask anything related to your documents…"
                   disabled={isStreaming}
                   rows={1}
                   className="text-foreground placeholder:text-muted-foreground max-h-[200px] min-h-[48px] w-full resize-none rounded-2xl bg-transparent px-4 pt-4 pr-16 pb-4 text-base leading-relaxed outline-none disabled:cursor-not-allowed disabled:opacity-50"
@@ -370,7 +381,6 @@ export function AIChatContainer() {
                 </div>
               </div>
 
-              {/* Suggested Prompt Buttons */}
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 {SUGGESTED_PROMPTS.map((prompt, index) => (
                   <button
@@ -385,14 +395,13 @@ export function AIChatContainer() {
                 ))}
               </div>
 
-              {/* Recent Chats Section */}
               {!loadingAllSessions && allSessions.length > 0 && (
                 <div className="mt-12">
                   <h2 className="text-muted-foreground mb-4 text-center text-sm font-medium">
                     Recent chats
                   </h2>
                   <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl">
-                    {allSessions.slice(0, 5).map((session: ChatSession) => (
+                    {allSessions.slice(0, 5).map((session) => (
                       <ChatListItem
                         key={session.id}
                         id={session.id}
@@ -413,11 +422,10 @@ export function AIChatContainer() {
           </div>
         </div>
 
-        {/* Delete Confirmation Dialog */}
         <ConfirmDialog
           open={!!deleteSessionId}
           title="Delete Chat Session?"
-          description="This action cannot be undone. This will permanently delete the chat session and all its messages."
+          description="This will permanently delete the chat session and all its messages."
           confirmLabel="Delete"
           confirmVariant="destructive"
           isConfirming={deleteMutation.isPending}
@@ -428,6 +436,8 @@ export function AIChatContainer() {
       </>
     )
   }
+
+  // ── Render: active chat ──────────────────────────────────────────────────
 
   return (
     <>
@@ -444,12 +454,11 @@ export function AIChatContainer() {
                   </div>
                   <div>
                     <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {sessionData?.session?.title || 'Ask Arnie'}
+                      {sessions.find((s) => s.id === currentSessionId)?.title || 'AskYourDoc'}
                     </h1>
                     {error && <p className="text-destructive text-xs">{error}</p>}
                   </div>
                 </div>
-                {/* Show New Chat button only when a session is selected */}
                 {currentSessionId && (
                   <Button
                     onClick={handleNewChat}
@@ -463,27 +472,28 @@ export function AIChatContainer() {
                 )}
               </div>
 
-              {/* Messages Area - Reduced height to accommodate chat list below */}
+              {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
                   <div className="flex flex-col gap-8">
                     {messages.map((message) => {
-                      // Don't render assistant message bubble while streaming and content is empty
-                      // Only show TypingIndicator in this case
-                      if (isStreamingEmptyAssistantMessage(message)) {
-                        return null
-                      }
+                      if (isStreamingEmptyAssistantMessage(message)) return null
 
-                      return <MessageBubble key={message.id} message={message} />
+                      return (
+                        <div key={message.id}>
+                          <MessageBubble message={message} />
+                          {/* Show sources under assistant messages */}
+                          {message.sender === 'assistant' && message.sources && (
+                            <SourcesPanel sources={message.sources} />
+                          )}
+                        </div>
+                      )
                     })}
 
-                    {/* Show typing indicator only when streaming and the streaming message has no content yet */}
                     {shouldShowTypingIndicator && <TypingIndicator />}
-                    {/* Sentinel for auto-scroll to latest message */}
                     <div ref={messagesEndRef} aria-hidden="true" />
                   </div>
 
-                  {/* Suggested Prompts - show only on empty conversation */}
                   {messages.length === 0 && !isStreaming && (
                     <SuggestedPrompts
                       prompts={SUGGESTED_PROMPTS}
@@ -504,8 +514,8 @@ export function AIChatContainer() {
             </div>
           </div>
 
-          {/* Right Sidebar: All Chats (visible after conversation starts) */}
-          {messages.length > 1 || currentSessionId ? (
+          {/* Right Sidebar: Chat History */}
+          {(messages.length > 1 || currentSessionId) && (
             <div className="hidden w-80 flex-col lg:flex">
               <div className="border-border bg-card flex h-full flex-col rounded-2xl border p-4 shadow-sm">
                 <div className="mb-4">
@@ -521,7 +531,7 @@ export function AIChatContainer() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">No chats yet</p>
                     </div>
                   ) : (
-                    allSessions.map((session: ChatSession) => (
+                    allSessions.map((session) => (
                       <ChatListItem
                         key={session.id}
                         id={session.id}
@@ -539,15 +549,14 @@ export function AIChatContainer() {
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteSessionId}
         title="Delete Chat Session?"
-        description="This action cannot be undone. This will permanently delete the chat session and all its messages."
+        description="This will permanently delete the chat session and all its messages."
         confirmLabel="Delete"
         confirmVariant="destructive"
         isConfirming={deleteMutation.isPending}

@@ -1,3 +1,64 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// Backend-aligned types
+// Backend: POST /chat → { answer, sources, chunks_retrieved }
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** A single document chunk that contributed to the answer */
+export interface SourceInfo {
+  document_id: number
+  filename: string | null
+  similarity: number
+}
+
+/** Request body for POST /chat */
+export interface ChatMessageRequest {
+  query: string
+  /** Number of chunks to retrieve (1-20). Defaults to 5. */
+  top_k?: number
+}
+
+/** Response from POST /chat */
+export interface ChatMessageResponse {
+  answer: string
+  sources: SourceInfo[]
+  chunks_retrieved: number
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Client-side conversation / session types
+// The backend has no session management; sessions are managed in the browser.
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** A single chat message displayed in the UI */
+export interface Message {
+  id: string
+  content: string
+  sender: 'user' | 'assistant'
+  timestamp: string
+  /** Sources returned by the backend for assistant messages */
+  sources?: SourceInfo[]
+  chunks_retrieved?: number
+}
+
+/** A client-side chat session (stored in browser state / localStorage) */
+export interface ChatSession {
+  id: string
+  title: string
+  description: string | null
+  /** ISO timestamp of last activity */
+  last_activity: string
+  created_at: string
+  updated_at: string
+  messages: Message[]
+  is_active: boolean
+  message_count: number
+  metadata: Record<string, unknown>
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Legacy types kept for backward-compatibility with container imports
+// ──────────────────────────────────────────────────────────────────────────────
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -10,7 +71,7 @@ export interface ChatStreamChunk {
   done: boolean
 }
 
-// SSE Streaming types matching backend format
+// SSE Streaming types – not used with this backend but kept so imports resolve
 export type StreamType = 'MESSAGE' | 'TOOL_USE' | 'SEARCH_RESULT' | 'ERROR' | 'END'
 
 export interface StreamChunkData {
@@ -49,19 +110,7 @@ export interface ChatConversationSummary {
   updated_at: string
 }
 
-export interface ChatSession {
-  id: string
-  title: string
-  description: string | null
-  user_id: string
-  is_active: boolean
-  message_count: number
-  last_activity: string
-  created_at: string
-  updated_at: string
-  metadata: Record<string, unknown>
-}
-
+/** Shape returned by the stub getSessions() on ChatService */
 export interface ChatSessionsApiResponse {
   data: ChatSession[]
   status: number
@@ -77,44 +126,15 @@ export interface SessionMessage {
   metadata: Record<string, unknown>
 }
 
-export interface SessionDetails extends ChatSession {
-  messages: SessionMessage[]
+export interface SessionDetails extends Omit<ChatSession, 'messages'> {
+  /** Legacy session-detail payload; not supported by this backend. */
+  messages: Message[]
 }
 
 export interface SessionDetailsApiResponse {
   data: SessionDetails
   status: number
   message: string
-}
-
-export interface ChatMessageRequest {
-  query: string
-  session_id?: string
-}
-
-export interface ChatMessageResponse {
-  answer: string
-  session_id: string
-  message_id: string
-  context_documents: unknown[]
-  used_documents: unknown[]
-  total_found: number
-  model_info: {
-    name: string
-    provider: string
-  }
-  search_metadata: {
-    tool_used: string | null
-    search_params: Record<string, unknown>
-    total_documents_processed: number
-  }
-}
-
-export interface Message {
-  id: string
-  content: string
-  sender: 'user' | 'assistant'
-  timestamp: string
 }
 
 export interface SuggestedPrompt {

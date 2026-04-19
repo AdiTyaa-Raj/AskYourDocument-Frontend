@@ -1,5 +1,26 @@
 import { BaseApiService } from './base'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Backend-aligned types (AskYourDocument)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BackendUserSummary {
+  id: number
+  tenant_id: number
+  email: string
+  full_name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendUserListResponse {
+  total: number
+  skip: number
+  limit: number
+  users: BackendUserSummary[]
+}
+
 export interface UserRecordApi {
   User: {
     id: number
@@ -118,6 +139,14 @@ function parseListedOrgUser(raw: unknown): ListedOrgUser | null {
 }
 
 class UsersService extends BaseApiService {
+  async listBackendUsers(skip = 0, limit = 50): Promise<BackendUserListResponse> {
+    const params = new URLSearchParams({
+      skip: String(skip),
+      limit: String(limit),
+    })
+    return this.get<BackendUserListResponse>(`/users?${params.toString()}`)
+  }
+
   async getUsersByIds(ids: number[]): Promise<UserDirectoryMap> {
     const uniqueIds = Array.from(
       new Set(ids.filter((id): id is number => typeof id === 'number' && Number.isFinite(id)))
@@ -125,14 +154,29 @@ class UsersService extends BaseApiService {
     if (!uniqueIds.length) {
       return {}
     }
-    const searchValue = encodeURIComponent(`id__in:${uniqueIds.join(',')}`)
-    const endpoint = `/search/User?search=${searchValue}`
-    const response = await this.get<UserSearchResponse>(endpoint)
-    const [records] = response
-    if (!Array.isArray(records) || !records.length) {
-      return {}
+    // Prefer legacy /search/User (older backends) when available; otherwise fall back
+    // to the AskYourDocument backend which exposes only list endpoints.
+    try {
+      const searchValue = encodeURIComponent(`id__in:${uniqueIds.join(',')}`)
+      const endpoint = `/search/User?search=${searchValue}`
+      const response = await this.get<UserSearchResponse>(endpoint)
+      const [records] = response
+      if (!Array.isArray(records) || !records.length) {
+        return {}
+      }
+      return mapUsersToDirectory(records)
+    } catch {
+      const { users } = await this.listUsers(0, 500)
+      const directory: UserDirectoryMap = {}
+      for (const u of users) {
+        if (!uniqueIds.includes(u.id)) continue
+        directory[u.id] = {
+          id: u.id,
+          fullName: u.displayName,
+        }
+      }
+      return directory
     }
-    return mapUsersToDirectory(records)
   }
 
   async getCurrentUser() {
@@ -150,15 +194,21 @@ class UsersService extends BaseApiService {
       skip: String(skip),
       limit: String(limit),
     })
-    const res = await this.get<{
-      /** Org user list shape from GET /users/ */
-      users?: unknown
-      /** Alternate paginated shape */
-      data?: unknown
-      total?: number
-    }>(`/users/?${params.toString()}`)
+    const res = await this.get<
+      BackendUserListResponse | { users?: unknown; data?: unknown; total?: number }
+    >(`/users?${params.toString()}`)
 
-    const rows = Array.isArray(res.users) ? res.users : Array.isArray(res.data) ? res.data : []
+    const rows =
+      typeof res === 'object' &&
+      res &&
+      'users' in res &&
+      Array.isArray((res as BackendUserListResponse).users)
+        ? (res as BackendUserListResponse).users
+        : Array.isArray((res as { users?: unknown }).users)
+          ? (res as { users: unknown[] }).users
+          : Array.isArray((res as { data?: unknown }).data)
+            ? (res as { data: unknown[] }).data
+            : []
     const seen = new Set<number>()
     const users: ListedOrgUser[] = []
     for (const row of rows) {
@@ -168,7 +218,10 @@ class UsersService extends BaseApiService {
         users.push(u)
       }
     }
-    const total = typeof res.total === 'number' ? res.total : users.length
+    const total =
+      typeof (res as { total?: unknown }).total === 'number'
+        ? (res as { total: number }).total
+        : users.length
     return { users, total }
   }
 }

@@ -1,17 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PREFIXES = [
-  '/dashboard',
-  '/portfolio',
-  '/documents',
-  '/memos',
-  '/notifications',
-  '/settings',
-  '/pipeline',
-  '/approvals',
-  '/tearsheet',
-  '/search',
-]
+const PROTECTED_PREFIXES = ['/documents', '/ai-chat', '/users', '/roles', '/tenants']
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -30,15 +19,10 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/portfolio/:path*',
     '/documents/:path*',
-    '/memos/:path*',
-    '/notifications/:path*',
-    '/settings/:path*',
-    '/pipeline/:path*',
-    '/approvals/:path*',
-    '/tearsheet/:path*',
-    '/search/:path*',
+    '/ai-chat/:path*',
+    '/users/:path*',
+    '/roles/:path*',
+    '/tenants/:path*',
   ],
 }

@@ -4,12 +4,12 @@
  */
 
 import axios, { AxiosError, AxiosResponse } from 'axios'
-import { clearAuthStorage } from '@/lib/authStorage'
+import { clearAuthStorage, readAccessToken } from '@/lib/authStorage'
 import notify from '@/lib/notifications'
+import { env } from '@/config/env'
 
-// Base API URL - update this with your backend URL
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://dev-webserver.arnie.shyftops.io/api/v1'
+// Base API URL - sourced from env config
+const API_BASE_URL = env.apiUrl
 
 // Create axios instance with default config
 export const apiClient = axios.create({
@@ -21,9 +21,15 @@ export const apiClient = axios.create({
   withCredentials: true, // Include cookies for auth
 })
 
-// Request interceptor - log in development
+// Request interceptor – attach Bearer token if available
 apiClient.interceptors.request.use(
   (config) => {
+    const token = readAccessToken()
+    if (token) {
+      config.headers = config.headers ?? {}
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.data)
     }

@@ -5,7 +5,7 @@ interface AppHeaderProps {
 }
 
 // Wrapper component that delegates to the container
-export const AppHeader = ({ title = 'Dashboard' }: AppHeaderProps) => {
+export const AppHeader = ({ title = 'Documents' }: AppHeaderProps) => {
   return <AppHeaderContainer title={title} />
 }
 

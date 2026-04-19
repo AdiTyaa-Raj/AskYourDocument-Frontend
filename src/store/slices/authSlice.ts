@@ -1,6 +1,7 @@
 'use client'
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { decodeJwtPayload } from '@/lib/jwt'
 
 export type AuthUser = {
   id: string
@@ -20,22 +21,11 @@ const initialState: AuthState = {
   user: null,
 }
 
-function decodeJwt(token: string) {
-  try {
-    const [, payload] = token.split('.')
-    const decoded = JSON.parse(atob(payload))
-    return decoded as Record<string, unknown>
-  } catch (error) {
-    console.warn('Failed to decode JWT', error)
-    return {}
-  }
-}
-
 export function parseTokenPayload(token: string): {
   user: AuthUser | null
   expiresAt: number | null
 } {
-  const payload = decodeJwt(token)
+  const payload = decodeJwtPayload(token)
   const id = typeof payload.sub === 'string' ? payload.sub : undefined
   if (!id) {
     return { user: null, expiresAt: null }

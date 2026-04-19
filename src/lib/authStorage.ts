@@ -10,11 +10,13 @@
 const EXPIRES_AT_KEY = 'rms_token_expires_at'
 const USER_INFO_KEY = 'rms_user_info'
 const AUTH_COOKIE_NAME = 'ayd_auth'
+const ACCESS_TOKEN_KEY = 'ayd_access_token'
 
 type UserInfo = {
   id?: string
   email?: string
   name?: string
+  role?: string
   preferredUsername?: string
   groups?: string[]
 }
@@ -24,10 +26,21 @@ function hasWindow() {
 }
 
 export function storeAuthTokens(expiresAt: number) {
-  // Tokens are now stored in HttpOnly cookies by the backend; only persist expiry for UX.
   if (!hasWindow()) return
   window.localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
   setAuthCookie(expiresAt)
+}
+
+/** Store the raw JWT access token returned from POST /login */
+export function storeAccessToken(token: string) {
+  if (!hasWindow()) return
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, token)
+}
+
+/** Read the stored JWT access token */
+export function readAccessToken(): string | null {
+  if (!hasWindow()) return null
+  return window.localStorage.getItem(ACCESS_TOKEN_KEY)
 }
 
 export function storeUserInfo(info: UserInfo) {
@@ -60,16 +73,19 @@ export function clearAuthStorage() {
   if (!hasWindow()) return
   window.localStorage.removeItem(EXPIRES_AT_KEY)
   window.localStorage.removeItem(USER_INFO_KEY)
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY)
   clearAuthCookie()
 }
 
 /**
- * Check if token is expired based on stored expiry time
- * Returns true if expired or no expiry time found
+ * Check if token is expired based on stored expiry time.
+ * Falls back to checking if an access token exists when no expiry is recorded.
  */
 export function isTokenExpired(): boolean {
+  const token = readAccessToken()
+  if (!token) return true
   const expiresAt = readTokenExpiry()
-  if (!expiresAt) return true
+  if (!expiresAt) return false // token exists but no expiry stored – treat as valid
   return Date.now() >= expiresAt
 }
 
