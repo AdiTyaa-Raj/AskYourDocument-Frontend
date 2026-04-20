@@ -49,12 +49,27 @@ apiClient.interceptors.response.use(
     return response
   },
   async (error: AxiosError) => {
+    function isLoginRequest(err: AxiosError): boolean {
+      const url = err.config?.url ?? ''
+      // BaseApiService calls use relative URLs like `/login`.
+      return url === '/login' || url.endsWith('/login')
+    }
+
+    function isOnLoginPage(): boolean {
+      if (typeof window === 'undefined') return false
+      return window.location?.pathname === '/login'
+    }
+
     // Handle specific error codes
     if (error.response) {
       const status = error.response.status
 
       switch (status) {
         case 401:
+          // Don't redirect when the user is actively trying to log in (or already on /login),
+          // otherwise the page refresh hides the real error message.
+          if (isLoginRequest(error) || isOnLoginPage()) break
+
           // Unauthorized - redirect to login
           console.error('[API] Unauthorized')
           console.error('[API] Unauthorized - redirecting to login')
