@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -46,11 +46,14 @@ export const AppSidebar = memo(function AppSidebar() {
   const pathname = usePathname()
   const { open, setOpen } = useSidebar()
 
-  const isSuperAdmin = useMemo(() => {
+  // Keep initial server + client HTML in sync; compute auth-dependent UI after mount.
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+
+  useEffect(() => {
     const token = readAccessToken()
-    if (!token) return false
+    if (!token) return
     const payload = decodeJwtPayload(token)
-    return payload.is_super_admin === true
+    setIsSuperAdmin(payload.is_super_admin === true)
   }, [])
 
   return (
