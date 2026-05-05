@@ -8,6 +8,11 @@ export interface SourceInfo {
   document_id: number
   filename: string | null
   similarity: number
+  /** Optional metadata returned by backend for richer UX */
+  content_type?: string | null
+  size_bytes?: number | null
+  /** Backend-provided download path (may include /api/v1 prefix) */
+  download_url?: string | null
 }
 
 /** Request body for POST /chat */

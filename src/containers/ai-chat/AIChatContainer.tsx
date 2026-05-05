@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Plus, FileText } from 'lucide-react'
+import { Sparkles, Plus, FileText, Download } from 'lucide-react'
 import type { Message, SourceInfo, ChatSession } from '@/containers/ai-chat/lib/types'
 import { getCurrentTimestamp } from '@/lib/date-utils'
 import {
@@ -23,6 +23,10 @@ import { SUGGESTED_PROMPTS } from '@/containers/ai-chat/data/default-messages'
 import { useAutoResizeTextarea } from '@/containers/ai-chat/lib/useAutoResizeTextarea'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import apiClient from '@/config/axios'
+import { env } from '@/config/env'
+import notify from '@/lib/notifications'
+import { formatBytes } from '@/lib/formatBytes'
 
 // ─── Local session storage helpers ────────────────────────────────────────────
 
@@ -61,14 +65,63 @@ function createNewSession(firstMessage?: string): ChatSession {
 
 // ─── Sources Panel ────────────────────────────────────────────────────────────
 
-function SourcesPanel({ sources }: { sources: SourceInfo[] }) {
+function normalizeDownloadPath(downloadUrl: string): string {
+  // If backend returns a full URL, use it as-is.
+  if (/^https?:\/\//i.test(downloadUrl)) return downloadUrl
+
+  // Backend may return paths like `/api/v1/documents/:id/download` while our
+  // axios baseURL already ends with `/api/v1`. Strip the base path to avoid
+  // double-prefixing.
+  try {
+    const apiBasePath = new URL(env.apiUrl).pathname.replace(/\/$/, '')
+    let path = downloadUrl.startsWith('/') ? downloadUrl : `/${downloadUrl}`
+    if (apiBasePath && apiBasePath !== '/' && path.startsWith(`${apiBasePath}/`)) {
+      path = path.slice(apiBasePath.length)
+    }
+    return path
+  } catch {
+    return downloadUrl.startsWith('/') ? downloadUrl : `/${downloadUrl}`
+  }
+}
+
+function SourcesPanel({ sources, chunksRetrieved }: { sources: SourceInfo[]; chunksRetrieved?: number }) {
   if (!sources || sources.length === 0) return null
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<number | null>(null)
+
+  const handleDownload = useCallback(async (src: SourceInfo) => {
+    if (!src.download_url) return
+    setDownloadingDocumentId(src.document_id)
+
+    try {
+      const url = normalizeDownloadPath(src.download_url)
+      const response = await apiClient.get(url, { responseType: 'blob' })
+
+      const blob = response.data as Blob
+      const blobUrl = URL.createObjectURL(blob)
+      const filename = src.filename || `document-${src.document_id}`
+
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0)
+    } catch (err) {
+      console.error('[SourcesPanel] Download failed', err)
+      notify.error({ title: 'Download failed', description: 'Unable to download source document.' })
+    } finally {
+      setDownloadingDocumentId(null)
+    }
+  }, [])
 
   return (
     <div className="border-border bg-muted/30 mt-2 rounded-lg border p-3">
       <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
         <FileText className="size-3" />
-        Sources ({sources.length})
+        {`Sources (${sources.length}${
+          Number.isFinite(chunksRetrieved) ? ` · ${chunksRetrieved} chunks` : ''
+        })`}
       </p>
       <div className="space-y-1">
         {sources.map((src, i) => (
@@ -79,7 +132,20 @@ function SourcesPanel({ sources }: { sources: SourceInfo[] }) {
             </span>
             <span className="text-muted-foreground shrink-0">
               {(src.similarity * 100).toFixed(0)}%
+              {typeof src.size_bytes === 'number' && src.size_bytes > 0
+                ? ` · ${formatBytes(src.size_bytes)}`
+                : ''}
             </span>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground ml-1 shrink-0 transition disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void handleDownload(src)}
+              disabled={!src.download_url || downloadingDocumentId === src.document_id}
+              aria-label={`Download ${src.filename || `Document #${src.document_id}`}`}
+              title={src.download_url ? 'Download' : 'Download unavailable'}
+            >
+              <Download className="size-3.5" />
+            </button>
           </div>
         ))}
       </div>
@@ -484,7 +550,10 @@ export function AIChatContainer() {
                           <MessageBubble message={message} />
                           {/* Show sources under assistant messages */}
                           {message.sender === 'assistant' && message.sources && (
-                            <SourcesPanel sources={message.sources} />
+                            <SourcesPanel
+                              sources={message.sources}
+                              chunksRetrieved={message.chunks_retrieved}
+                            />
                           )}
                         </div>
                       )
